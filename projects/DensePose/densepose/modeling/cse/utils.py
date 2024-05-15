@@ -1,5 +1,7 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 
+# pyre-unsafe
+
 import torch
 from torch.nn import functional as F
 
@@ -32,9 +34,7 @@ def normalize_embeddings(embeddings: torch.Tensor, epsilon: float = 1e-6) -> tor
     Return:
         Normalized embeddings (tensor [N, D]), such that L2 vector norms are all equal to 1.
     """
-    return embeddings / torch.clamp(
-        embeddings.norm(p=None, dim=1, keepdim=True), min=epsilon  # pyre-ignore[6]
-    )
+    return embeddings / torch.clamp(embeddings.norm(p=None, dim=1, keepdim=True), min=epsilon)
 
 
 def get_closest_vertices_mask_from_ES(

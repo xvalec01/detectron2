@@ -19,12 +19,16 @@ import detectron2.utils.comm as comm
 from detectron2.config import CfgNode
 from detectron2.data import MetadataCatalog
 from detectron2.data.datasets.coco import convert_to_coco_json
-from detectron2.evaluation.fast_eval_api import COCOeval_opt
 from detectron2.structures import Boxes, BoxMode, pairwise_iou
 from detectron2.utils.file_io import PathManager
 from detectron2.utils.logger import create_small_table
 
 from .evaluator import DatasetEvaluator
+
+try:
+    from detectron2.evaluation.fast_eval_api import COCOeval_opt
+except ImportError:
+    COCOeval_opt = COCOeval
 
 
 class COCOEvaluator(DatasetEvaluator):
@@ -50,6 +54,7 @@ class COCOEvaluator(DatasetEvaluator):
         max_dets_per_image=None,
         use_fast_impl=True,
         kpt_oks_sigmas=(),
+        allow_cached_coco=True,
     ):
         """
         Args:
@@ -85,10 +90,17 @@ class COCOEvaluator(DatasetEvaluator):
                 See http://cocodataset.org/#keypoints-eval
                 When empty, it will use the defaults in COCO.
                 Otherwise it should be the same length as ROI_KEYPOINT_HEAD.NUM_KEYPOINTS.
+            allow_cached_coco (bool): Whether to use cached coco json from previous validation
+                runs. You should set this to False if you need to use different validation data.
+                Defaults to True.
         """
         self._logger = logging.getLogger(__name__)
         self._distributed = distributed
         self._output_dir = output_dir
+
+        if use_fast_impl and (COCOeval_opt is COCOeval):
+            self._logger.info("Fast COCO eval is not built. Falling back to official COCO eval.")
+            use_fast_impl = False
         self._use_fast_impl = use_fast_impl
 
         # COCOeval requires the limit on the number of detections per image (maxDets) to be a list
@@ -127,7 +139,7 @@ class COCOEvaluator(DatasetEvaluator):
 
             cache_path = os.path.join(output_dir, f"{dataset_name}_coco_format.json")
             self._metadata.json_file = cache_path
-            convert_to_coco_json(dataset_name, cache_path)
+            convert_to_coco_json(dataset_name, cache_path, allow_cached=allow_cached_coco)
 
         json_file = PathManager.get_local_path(self._metadata.json_file)
         with contextlib.redirect_stdout(io.StringIO()):
@@ -256,7 +268,7 @@ class COCOEvaluator(DatasetEvaluator):
                     coco_results,
                     task,
                     kpt_oks_sigmas=self._kpt_oks_sigmas,
-                    use_fast_impl=self._use_fast_impl,
+                    cocoeval_fn=COCOeval_opt if self._use_fast_impl else COCOeval,
                     img_ids=img_ids,
                     max_dets_per_image=self._max_dets_per_image,
                 )
@@ -460,14 +472,14 @@ def _evaluate_box_proposals(dataset_predictions, coco_api, thresholds=None, area
         "512-inf": 7,
     }
     area_ranges = [
-        [0 ** 2, 1e5 ** 2],  # all
-        [0 ** 2, 32 ** 2],  # small
-        [32 ** 2, 96 ** 2],  # medium
-        [96 ** 2, 1e5 ** 2],  # large
-        [96 ** 2, 128 ** 2],  # 96-128
-        [128 ** 2, 256 ** 2],  # 128-256
-        [256 ** 2, 512 ** 2],  # 256-512
-        [512 ** 2, 1e5 ** 2],
+        [0**2, 1e5**2],  # all
+        [0**2, 32**2],  # small
+        [32**2, 96**2],  # medium
+        [96**2, 1e5**2],  # large
+        [96**2, 128**2],  # 96-128
+        [128**2, 256**2],  # 128-256
+        [256**2, 512**2],  # 256-512
+        [512**2, 1e5**2],
     ]  # 512-inf
     assert area in areas, "Unknown area range: {}".format(area)
     area_range = area_ranges[areas[area]]
@@ -557,7 +569,7 @@ def _evaluate_predictions_on_coco(
     coco_results,
     iou_type,
     kpt_oks_sigmas=None,
-    use_fast_impl=True,
+    cocoeval_fn=COCOeval_opt,
     img_ids=None,
     max_dets_per_image=None,
 ):
@@ -576,7 +588,7 @@ def _evaluate_predictions_on_coco(
             c.pop("bbox", None)
 
     coco_dt = coco_gt.loadRes(coco_results)
-    coco_eval = (COCOeval_opt if use_fast_impl else COCOeval)(coco_gt, coco_dt, iou_type)
+    coco_eval = cocoeval_fn(coco_gt, coco_dt, iou_type)
     # For COCO, the default max_dets_per_image is [1, 10, 100].
     if max_dets_per_image is None:
         max_dets_per_image = [1, 10, 100]  # Default from COCOEval

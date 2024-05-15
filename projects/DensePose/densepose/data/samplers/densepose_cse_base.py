@@ -1,5 +1,7 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 
+# pyre-unsafe
+
 from typing import Any, Dict, List, Tuple
 import torch
 from torch.nn import functional as F
@@ -62,7 +64,7 @@ class DensePoseCSEBaseSampler(DensePoseBaseSampler):
 
         mask, embeddings, other_values = self._produce_mask_and_results(instance, bbox_xywh)
         indices = torch.nonzero(mask, as_tuple=True)
-        selected_embeddings = embeddings.permute(1, 2, 0)[indices]
+        selected_embeddings = embeddings.permute(1, 2, 0)[indices].cpu()
         values = other_values[:, indices[0], indices[1]]
         k = values.shape[1]
 

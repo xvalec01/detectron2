@@ -1,7 +1,7 @@
 ## Installation
 
 ### Requirements
-- Linux or macOS with Python ≥ 3.6
+- Linux or macOS with Python ≥ 3.7
 - PyTorch ≥ 1.8 and [torchvision](https://github.com/pytorch/vision/) that matches the PyTorch installation.
   Install them together at [pytorch.org](https://pytorch.org) to make sure of this
 - OpenCV is optional but needed by demo and visualization
@@ -57,8 +57,8 @@ Choose from this table to install [v0.6 (Oct 2021)](https://github.com/facebookr
 Note that:
 1. The pre-built packages have to be used with corresponding version of CUDA and the official package of PyTorch.
    Otherwise, please build detectron2 from source.
-2. New packages are released every few months. Therefore, packages may not contain latest features in the master
-   branch and may not be compatible with the master branch of a research project that uses detectron2
+2. New packages are released every few months. Therefore, packages may not contain latest features in the main
+   branch and may not be compatible with the main branch of a research project that uses detectron2
    (e.g. those in [projects](projects)).
 
 ### Common Installation Issues
@@ -67,7 +67,7 @@ Click each issue for its solutions:
 
 <details>
 <summary>
-Undefined symbols that contains TH,aten,torch,caffe2.
+Undefined symbols that looks like "TH..","at::Tensor...","torch..."
 </summary>
 <br/>
 
@@ -96,7 +96,7 @@ compiled with the version of PyTorch you're running. See the previous common iss
 
 <details>
 <summary>
-Undefined C++ symbols (e.g. GLIBCXX) or C++ symbols not found.
+Undefined C++ symbols (e.g. "GLIBCXX..") or C++ symbols not found.
 </summary>
 <br/>
 Usually it's because the library is compiled with a newer C++ compiler but run with an old C++ runtime.
@@ -187,7 +187,8 @@ C++ compilation errors from NVCC / NVRTC, or "Unsupported gpu architecture"
 <br/>
 A few possibilities:
 
-1. Local CUDA/NVCC version has to match the CUDA version of your PyTorch. Both can be found in `python collect_env.py`.
+1. Local CUDA/NVCC version has to match the CUDA version of your PyTorch. Both can be found in `python collect_env.py`
+   (download from [here](./detectron2/utils/collect_env.py)).
    When they are inconsistent, you need to either install a different build of PyTorch (or build by yourself)
    to match your local CUDA installation, or install a different version of CUDA to match PyTorch.
 
@@ -224,7 +225,7 @@ Any issue on windows.
 </summary>
 <br/>
 
-Detectron2 is continuously built on windows with [CircleCI](https://app.circleci.com/pipelines/github/facebookresearch/detectron2?branch=master).
+Detectron2 is continuously built on windows with [CircleCI](https://app.circleci.com/pipelines/github/facebookresearch/detectron2?branch=main).
 However we do not provide official support for it.
 PRs that improves code compatibility on windows are welcome.
 </details>
@@ -246,8 +247,8 @@ whose version is closer to what's used by PyTorch (available in `torch.__config_
 "library not found for -lstdc++" on older version of MacOS
 </summary>
 <br/>
-See
-[this stackoverflow answer](https://stackoverflow.com/questions/56083725/macos-build-issues-lstdc-not-found-while-building-python-package).
+
+See [this stackoverflow answer](https://stackoverflow.com/questions/56083725/macos-build-issues-lstdc-not-found-while-building-python-package).
 
 </details>
 
@@ -258,4 +259,3 @@ See
   which has step-by-step instructions.
 
 * __Docker__: The official [Dockerfile](docker) installs detectron2 with a few simple commands.
-

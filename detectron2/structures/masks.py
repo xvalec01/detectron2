@@ -99,8 +99,10 @@ class BitMasks:
         Args:
             tensor: bool Tensor of N,H,W, representing N instances in the image.
         """
-        device = tensor.device if isinstance(tensor, torch.Tensor) else torch.device("cpu")
-        tensor = torch.as_tensor(tensor, dtype=torch.bool, device=device)
+        if isinstance(tensor, torch.Tensor):
+            tensor = tensor.to(torch.bool)
+        else:
+            tensor = torch.as_tensor(tensor, dtype=torch.bool, device=torch.device("cpu"))
         assert tensor.dim() == 3, tensor.size()
         self.image_size = tensor.shape[1:]
         self.tensor = tensor
@@ -517,16 +519,16 @@ class ROIMasks:
     @torch.jit.unused
     def to_bitmasks(self, boxes: torch.Tensor, height, width, threshold=0.5):
         """
-        Args:
-
+        Args: see documentation of :func:`paste_masks_in_image`.
         """
-        from detectron2.layers import paste_masks_in_image
+        from detectron2.layers.mask_ops import paste_masks_in_image, _paste_masks_tensor_shape
 
-        paste = retry_if_cuda_oom(paste_masks_in_image)
-        bitmasks = paste(
-            self.tensor,
-            boxes,
-            (height, width),
-            threshold=threshold,
-        )
+        if torch.jit.is_tracing():
+            if isinstance(height, torch.Tensor):
+                paste_func = _paste_masks_tensor_shape
+            else:
+                paste_func = paste_masks_in_image
+        else:
+            paste_func = retry_if_cuda_oom(paste_masks_in_image)
+        bitmasks = paste_func(self.tensor, boxes.tensor, (height, width), threshold=threshold)
         return BitMasks(bitmasks)

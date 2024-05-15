@@ -77,14 +77,8 @@ def get_evaluator(cfg, dataset_name, output_folder=None):
     if evaluator_type == "coco_panoptic_seg":
         evaluator_list.append(COCOPanopticEvaluator(dataset_name, output_folder))
     if evaluator_type == "cityscapes_instance":
-        assert (
-            torch.cuda.device_count() > comm.get_rank()
-        ), "CityscapesEvaluator currently do not work with multiple machines."
         return CityscapesInstanceEvaluator(dataset_name)
     if evaluator_type == "cityscapes_sem_seg":
-        assert (
-            torch.cuda.device_count() > comm.get_rank()
-        ), "CityscapesEvaluator currently do not work with multiple machines."
         return CityscapesSemSegEvaluator(dataset_name)
     if evaluator_type == "pascal_voc":
         return PascalVOCDetectionEvaluator(dataset_name)
@@ -210,7 +204,7 @@ def main(args):
     return do_test(cfg, model)
 
 
-if __name__ == "__main__":
+def invoke_main() -> None:
     args = default_argument_parser().parse_args()
     print("Command Line Args:", args)
     launch(
@@ -221,3 +215,7 @@ if __name__ == "__main__":
         dist_url=args.dist_url,
         args=(args,),
     )
+
+
+if __name__ == "__main__":
+    invoke_main()  # pragma: no cover
